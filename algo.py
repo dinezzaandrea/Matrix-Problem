@@ -123,20 +123,29 @@ def process_single_file(args):
         exec_time = 0.0
 
         with open(output_res_path, 'w') as out_res:
-            out_res.write(f"Safe-to-Pivot: {is_safe}\n")
+            out_res.write(f"Safe_to_Pivot: {is_safe}\n")
 
             if is_safe:
                 start_t = time.perf_counter()
+                step_counter = 0
 
                 fmt_pos = lambda d: str(list(d.values())).replace('.', ',')
-                out_res.write(f"0 {fmt_pos(init_config)}\n")
+
+                out_res.write(f"{step_counter} {fmt_pos(init_config)}\n")
+                step_counter += 1
+
                 agent_ids = list(init_config.keys())
+                c_pivot, pivot_history = piv.pivot_visit_algorithm(agent_ids, init_config, pivot, obstacles, w, h)
 
-                c_pivot = piv.pivot_visit_algorithm(agent_ids, init_config, pivot, obstacles, w, h)
-                out_res.write(f"1 {fmt_pos(c_pivot)}\n")
+                for config in pivot_history:
+                    out_res.write(f"{step_counter} {fmt_pos(config)}\n")
+                    step_counter += 1
 
-                final_c = dest.extend_to_destination_set(agent_ids, c_pivot, dest_set, obstacles, w, h)
-                out_res.write(f"2 {fmt_pos(final_c)}\n")
+                final_c, dest_history = dest.extend_to_destination_set(agent_ids, c_pivot, dest_set, obstacles, w, h)
+
+                for config in dest_history:
+                    out_res.write(f"{step_counter} {fmt_pos(config)}\n")
+                    step_counter += 1
 
                 exec_time = time.perf_counter() - start_t
             else:
@@ -180,7 +189,7 @@ def run_experiment_parallel():
                 try:
                     with open(sample_file, 'r') as f:
                         content = f.read()
-                        if "2-edge-connected" in content:
+                        if "Safe-to-Pivot" in content:
                             should_reset = True
                 except Exception:
                     pass
